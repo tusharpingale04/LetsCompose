@@ -1,111 +1,114 @@
 package com.tushar.letscompose
 
+import android.content.res.Configuration
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Card
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewParameter
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.tushar.letscompose.ui.theme.LetsComposeTheme
+import com.tushar.letscompose.utils.HorizontalView
+import com.tushar.letscompose.utils.SampleData
+import com.tushar.letscompose.utils.VerticalView
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val painter = painterResource(id = R.drawable.ic_beach)
-            val title = "Enjoying a sunny day on the beach"
-            RoundedImageView(
-                painter = painter,
-                contentDescription = title,
-                modifier = Modifier
-                    .fillMaxWidth(0.5f)
-                    .padding(16.dp),
-                title = title
-            ){
-                Toast.makeText(this, "Image Clicked", Toast.LENGTH_SHORT).show()
+            LetsComposeTheme {
+                Conversations(messages = SampleData.conversationSample)
             }
         }
     }
 }
 
+data class Message(val author: String, val body: String)
 
 @Composable
-fun RoundedImageView(
-    painter: Painter,
-    contentDescription: String,
-    modifier: Modifier,
-    title: String,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable {
-                onClick.invoke()
-            },
-        shape = RoundedCornerShape(16.dp),
-        elevation = 5.dp
-    ) {
-        Box(modifier = Modifier.height(200.dp)) {
-            Image(
-                painter = painter,
-                contentDescription = contentDescription,
-                contentScale = ContentScale.Crop
+fun MessageCard(msg: Message) {
+    HorizontalView(modifier = Modifier.padding(all = 8.dp)) {
+        Image(
+            painter = painterResource(R.drawable.ic_profile_picture),
+            contentDescription = "Contact profile picture",
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .border(1.0.dp, MaterialTheme.colors.secondary, CircleShape)
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // We keep track if the message is expanded or not in this
+        // variable
+        var isExpanded by remember { mutableStateOf(false) }
+
+        // surfaceColor will be updated gradually from one color to the other
+        val surfaceColor: Color by animateColorAsState(
+            if (isExpanded) MaterialTheme.colors.primary else MaterialTheme.colors.surface,
+        )
+
+        VerticalView {
+            Text(
+                text = msg.author,
+                color = MaterialTheme.colors.secondaryVariant,
+                style = MaterialTheme.typography.subtitle2
             )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            listOf(
-                                Color.Transparent,
-                                Color.Transparent,
-                                Color.Black
-                            )
-                        )
-                    )
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(8.dp),
-                contentAlignment = Alignment.BottomCenter
-            ) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Surface(shape = MaterialTheme.shapes.medium,
+                elevation = 1.dp,
+                color = surfaceColor,
+            modifier = Modifier.animateContentSize().padding(1.dp)) {
                 Text(
-                    text = title,
-                    fontWeight = FontWeight.Bold,
-                    style = TextStyle(
-                        color = Color.White,
-                        fontStyle = FontStyle.Normal,
-                        fontFamily = FontFamily.SansSerif,
-                        fontSize = 16.sp
-                    )
+                    text = msg.body,
+                    modifier = Modifier
+                        .padding(all = 4.dp)
+                        .clickable { isExpanded = !isExpanded },
+                    maxLines = if (isExpanded) Int.MAX_VALUE else 1,
+                    style = MaterialTheme.typography.body2
                 )
             }
         }
     }
 }
+
+@Composable
+fun Conversations(messages: List<Message>) {
+    LazyColumn {
+        items(messages) { message ->
+            MessageCard(msg = message)
+        }
+    }
+}
+
+@Preview(name = "Light Mode")
+@Preview(
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true,
+    name = "Dark Mode"
+)
+@Composable
+fun PreviewMessageCard() {
+    MessageCard(
+        msg = Message("Tushar", "This is a test message from compose!")
+    )
+}
+
+
